@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 # Set up path to import app from app/main.py
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from app.main import app  # ✅ Correct import
+from app.main import app
 
 client = TestClient(app)
 
