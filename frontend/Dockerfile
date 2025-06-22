@@ -3,6 +3,10 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
+# Add build-time environment variable
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 # Copy only what’s needed for install
 COPY package.json package-lock.json ./
 
@@ -12,7 +16,7 @@ RUN npm ci
 # Copy the rest of the app
 COPY . .
 
-# Build the app
+# Build the app with API URL injected
 RUN npm run build
 
 # Stage 2: Runtime
