@@ -73,7 +73,7 @@ jobs:
 
       - name: Run backend tests
         working-directory: backend/test_scripts
-        run: pytest ../
+        run: pytest ../ -v
 
   push:
     name: Docker Build & Push to Public ECR

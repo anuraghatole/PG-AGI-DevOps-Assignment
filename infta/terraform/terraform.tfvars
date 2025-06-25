@@ -15,15 +15,3 @@ azs = ["ap-south-1a", "ap-south-1b"]
 # ECS Task Images
 frontend_image = "public.ecr.aws/r3c4o3m2/pg-agi-devops-assignment-frontend:560fa5c"
 backend_image  = "public.ecr.aws/r3c4o3m2/pg-agi-devops-assignment-backend:f4cb7a8"
-
-
-
-
-# ALB Module
-# These values will be fetched using outputs from modules (no need to hardcode)
-
-# ECS Module
-# These also come from outputs. Example (commented for now):
-# alb_listener_arn        = module.alb.listener_arn
-# execution_role_arn      = module.iam.execution_role_arn
-# ecs_security_group_id   = module.alb.security_group_id
