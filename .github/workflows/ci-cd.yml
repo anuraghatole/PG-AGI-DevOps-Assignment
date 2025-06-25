@@ -128,13 +128,12 @@ jobs:
 
       # FRONTEND TASK UPDATE
       - name: Register new frontend task definition
-        id: frontend-task
         run: |
           aws ecs describe-task-definition --task-definition $FRONTEND_SERVICE_NAME \
           | jq '.taskDefinition | .containerDefinitions[0].image = "'"$FRONTEND_ECR_REPO:$SHORT_SHA"'"' \
           | jq '{family: .family, networkMode: .networkMode, requiresCompatibilities: .requiresCompatibilities, containerDefinitions: [.containerDefinitions[0]], cpu: .cpu, memory: .memory, executionRoleArn: .executionRoleArn}' > frontend-task.json
 
-          FRONTEND_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://frontend-task.json | jq -r '.taskDefinition.taskDefinitionArn')
+          export FRONTEND_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://frontend-task.json | jq -r '.taskDefinition.taskDefinitionArn')
           echo "FRONTEND_TASK_DEF_ARN=$FRONTEND_TASK_DEF_ARN" >> $GITHUB_ENV
 
       - name: Update frontend service
@@ -147,13 +146,12 @@ jobs:
 
       # BACKEND TASK UPDATE
       - name: Register new backend task definition
-        id: backend-task
         run: |
           aws ecs describe-task-definition --task-definition $BACKEND_SERVICE_NAME \
           | jq '.taskDefinition | .containerDefinitions[0].image = "'"$BACKEND_ECR_REPO:$SHORT_SHA"'"' \
           | jq '{family: .family, networkMode: .networkMode, requiresCompatibilities: .requiresCompatibilities, containerDefinitions: [.containerDefinitions[0]], cpu: .cpu, memory: .memory, executionRoleArn: .executionRoleArn}' > backend-task.json
 
-          BACKEND_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://backend-task.json | jq -r '.taskDefinition.taskDefinitionArn')
+          export BACKEND_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://backend-task.json | jq -r '.taskDefinition.taskDefinitionArn')
           echo "BACKEND_TASK_DEF_ARN=$BACKEND_TASK_DEF_ARN" >> $GITHUB_ENV
 
       - name: Update backend service
