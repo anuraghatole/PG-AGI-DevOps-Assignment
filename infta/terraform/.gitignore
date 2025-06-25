@@ -1,0 +1,14 @@
+# Terraform local state and cache
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# Crash logs and overrides
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Optional lock file
+.terraform.lock.hcl
