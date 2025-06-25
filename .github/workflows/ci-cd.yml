@@ -138,6 +138,11 @@ jobs:
             --cli-input-json file://frontend-task.json \
             | jq -r '.taskDefinition.taskDefinitionArn')
 
+          if [ -z "$FRONTEND_TASK_DEF_ARN" ]; then
+            echo "❌ ERROR: FRONTEND_TASK_DEF_ARN is empty!"
+            exit 1
+          fi
+
           echo "Updating frontend service with task definition $FRONTEND_TASK_DEF_ARN"
           aws ecs update-service \
             --cluster "$ECS_CLUSTER_NAME" \
@@ -156,9 +161,15 @@ jobs:
             --cli-input-json file://backend-task.json \
             | jq -r '.taskDefinition.taskDefinitionArn')
 
+          if [ -z "$BACKEND_TASK_DEF_ARN" ]; then
+            echo "❌ ERROR: BACKEND_TASK_DEF_ARN is empty!"
+            exit 1
+          fi
+
           echo "Updating backend service with task definition $BACKEND_TASK_DEF_ARN"
           aws ecs update-service \
             --cluster "$ECS_CLUSTER_NAME" \
             --service "$BACKEND_SERVICE_NAME" \
             --task-definition "$BACKEND_TASK_DEF_ARN" \
             --force-new-deployment
+
