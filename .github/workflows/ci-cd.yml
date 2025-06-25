@@ -11,6 +11,9 @@ env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
   FRONTEND_ECR_REPO: ${{ secrets.FRONTEND_ECR_REPO }}
   BACKEND_ECR_REPO: ${{ secrets.BACKEND_ECR_REPO }}
+  ECS_CLUSTER_NAME: ${{ secrets.ECS_CLUSTER_NAME }}
+  FRONTEND_SERVICE_NAME: ${{ secrets.FRONTEND_SERVICE_NAME }}
+  BACKEND_SERVICE_NAME: ${{ secrets.BACKEND_SERVICE_NAME }}
 
 jobs:
   build:
@@ -21,7 +24,7 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v3
 
-      # ----- FRONTEND BUILD -----
+      # FRONTEND
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
@@ -31,7 +34,7 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      # ----- BACKEND BUILD -----
+      # BACKEND
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
@@ -50,7 +53,7 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v3
 
-      # ----- FRONTEND TEST -----
+      # FRONTEND TEST
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
@@ -62,7 +65,7 @@ jobs:
           npm install --prefix ../
           npm test ../
 
-      # ----- BACKEND TEST -----
+      # BACKEND TEST
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
@@ -85,28 +88,82 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v3
 
-      # ----- AWS LOGIN -----
-      - name: Login to Amazon Public ECR
+      - name: Extract short SHA
+        run: echo "SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_ENV
+
+      - name: Login to Amazon ECR
         run: |
-          aws ecr-public get-login-password --region $AWS_REGION | \
-          docker login --username AWS --password-stdin public.ecr.aws
+          aws ecr get-login-password --region $AWS_REGION | \
+          docker login --username AWS --password-stdin $(echo $FRONTEND_ECR_REPO | cut -d'/' -f1)
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      # ----- Generate SHORT SHA -----
-      - name: Extract short SHA
-        run: echo "SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_ENV
-
-      # ----- DOCKER BUILD + PUSH -----
       - name: Build & Push Backend Image
         run: |
           docker build -t $BACKEND_ECR_REPO:$SHORT_SHA ./backend
           docker push $BACKEND_ECR_REPO:$SHORT_SHA
 
-      - name: Build & Push Frontend Image
+      - name: Build & Push Frontend Image (with API URL)
         run: |
           docker build \
             --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} \
             -t $FRONTEND_ECR_REPO:$SHORT_SHA ./frontend
           docker push $FRONTEND_ECR_REPO:$SHORT_SHA
+
+  deploy:
+    name: Deploy to ECS
+    runs-on: ubuntu-latest
+    needs: push
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Extract short SHA
+        run: echo "SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_ENV
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # FRONTEND TASK UPDATE
+      - name: Register new frontend task definition
+        id: frontend-task
+        run: |
+          aws ecs describe-task-definition --task-definition $FRONTEND_SERVICE_NAME \
+          | jq '.taskDefinition | .containerDefinitions[0].image = "'"$FRONTEND_ECR_REPO:$SHORT_SHA"'"' \
+          | jq '{family: .family, networkMode: .networkMode, requiresCompatibilities: .requiresCompatibilities, containerDefinitions: [.containerDefinitions[0]], cpu: .cpu, memory: .memory, executionRoleArn: .executionRoleArn}' > frontend-task.json
+
+          FRONTEND_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://frontend-task.json | jq -r '.taskDefinition.taskDefinitionArn')
+          echo "FRONTEND_TASK_DEF_ARN=$FRONTEND_TASK_DEF_ARN" >> $GITHUB_ENV
+
+      - name: Update frontend service
+        run: |
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER_NAME \
+            --service $FRONTEND_SERVICE_NAME \
+            --task-definition ${{ env.FRONTEND_TASK_DEF_ARN }} \
+            --force-new-deployment
+
+      # BACKEND TASK UPDATE
+      - name: Register new backend task definition
+        id: backend-task
+        run: |
+          aws ecs describe-task-definition --task-definition $BACKEND_SERVICE_NAME \
+          | jq '.taskDefinition | .containerDefinitions[0].image = "'"$BACKEND_ECR_REPO:$SHORT_SHA"'"' \
+          | jq '{family: .family, networkMode: .networkMode, requiresCompatibilities: .requiresCompatibilities, containerDefinitions: [.containerDefinitions[0]], cpu: .cpu, memory: .memory, executionRoleArn: .executionRoleArn}' > backend-task.json
+
+          BACKEND_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://backend-task.json | jq -r '.taskDefinition.taskDefinitionArn')
+          echo "BACKEND_TASK_DEF_ARN=$BACKEND_TASK_DEF_ARN" >> $GITHUB_ENV
+
+      - name: Update backend service
+        run: |
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER_NAME \
+            --service $BACKEND_SERVICE_NAME \
+            --task-definition ${{ env.BACKEND_TASK_DEF_ARN }} \
+            --force-new-deployment
