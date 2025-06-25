@@ -111,6 +111,7 @@ jobs:
     name: Deploy to ECS
     runs-on: ubuntu-latest
     needs: push
+    timeout-minutes: 15
 
     steps:
       - name: Checkout source code
@@ -133,11 +134,10 @@ jobs:
           | jq '{family: .family, networkMode: .networkMode, requiresCompatibilities: .requiresCompatibilities, containerDefinitions: [.containerDefinitions[0]], cpu: .cpu, memory: .memory, executionRoleArn: .executionRoleArn}' > frontend-task.json
 
           FRONTEND_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://frontend-task.json | jq -r '.taskDefinition.taskDefinitionArn')
-          echo "$FRONTEND_TASK_DEF_ARN" > frontend_task_arn.txt
+          echo "FRONTEND_TASK_DEF_ARN=$FRONTEND_TASK_DEF_ARN" >> $GITHUB_ENV
 
       - name: Update frontend service
         run: |
-          FRONTEND_TASK_DEF_ARN=$(cat frontend_task_arn.txt)
           if [ -z "$FRONTEND_TASK_DEF_ARN" ]; then
             echo "ERROR: FRONTEND_TASK_DEF_ARN is empty"
             exit 1
@@ -155,11 +155,10 @@ jobs:
           | jq '{family: .family, networkMode: .networkMode, requiresCompatibilities: .requiresCompatibilities, containerDefinitions: [.containerDefinitions[0]], cpu: .cpu, memory: .memory, executionRoleArn: .executionRoleArn}' > backend-task.json
 
           BACKEND_TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://backend-task.json | jq -r '.taskDefinition.taskDefinitionArn')
-          echo "$BACKEND_TASK_DEF_ARN" > backend_task_arn.txt
+          echo "BACKEND_TASK_DEF_ARN=$BACKEND_TASK_DEF_ARN" >> $GITHUB_ENV
 
       - name: Update backend service
         run: |
-          BACKEND_TASK_DEF_ARN=$(cat backend_task_arn.txt)
           if [ -z "$BACKEND_TASK_DEF_ARN" ]; then
             echo "ERROR: BACKEND_TASK_DEF_ARN is empty"
             exit 1
