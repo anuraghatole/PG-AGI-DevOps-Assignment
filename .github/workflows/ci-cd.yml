@@ -17,6 +17,7 @@ env:
 
 jobs:
   build:
+    if: github.ref == 'refs/heads/develop' || github.event.pull_request.base.ref == 'main'
     name: Build Frontend & Backend
     runs-on: ubuntu-latest
 
@@ -43,6 +44,7 @@ jobs:
         run: pip install -r requirements.txt
 
   test:
+    if: github.ref == 'refs/heads/develop' || github.event.pull_request.base.ref == 'main'
     name: Test Frontend & Backend
     runs-on: ubuntu-latest
     needs: build
@@ -76,6 +78,7 @@ jobs:
         run: pytest ../ -v
 
   push:
+    if: github.event.pull_request.base.ref == 'main'
     name: Docker Build & Push to Public ECR
     runs-on: ubuntu-latest
     needs: test
@@ -108,6 +111,7 @@ jobs:
           docker push $FRONTEND_ECR_REPO:$SHORT_SHA
 
   deploy:
+    if: github.event.pull_request.base.ref == 'main'
     name: Deploy to ECS
     runs-on: ubuntu-latest
     needs: push
@@ -129,46 +133,54 @@ jobs:
 
       - name: Register and update frontend task
         run: |
-          echo "Registering frontend task definition..."
-          aws ecs describe-task-definition --task-definition "${{ secrets.FRONTEND_TASK_FAMILY }}" \
-          | jq '.taskDefinition | .containerDefinitions[0].image = "'"${{ env.FRONTEND_ECR_REPO }}:$SHORT_SHA"'"' \
-          | jq '{family: .family, networkMode: .networkMode, requiresCompatibilities: .requiresCompatibilities, containerDefinitions: [.containerDefinitions[0]], cpu: .cpu, memory: .memory, executionRoleArn: .executionRoleArn}' > frontend-task.json
+          FRONTEND_TASK_DEF=$(aws ecs describe-services \
+            --cluster "$ECS_CLUSTER_NAME" \
+            --services "$FRONTEND_SERVICE_NAME" \
+            --query "services[0].taskDefinition" --output text)
+
+          TASK_FAMILY=$(echo $FRONTEND_TASK_DEF | cut -d'/' -f2 | cut -d':' -f1)
+
+          aws ecs describe-task-definition --task-definition "$TASK_FAMILY" > td.json
+
+          cat td.json |
+            jq '.taskDefinition |
+              .containerDefinitions[0].image = "'"${{ env.FRONTEND_ECR_REPO }}:$SHORT_SHA"'" |
+              {family: .family, networkMode, requiresCompatibilities, cpu, memory, executionRoleArn, containerDefinitions: [.containerDefinitions[0]]}' \
+            > frontend-task.json
 
           FRONTEND_TASK_DEF_ARN=$(aws ecs register-task-definition \
             --cli-input-json file://frontend-task.json \
             | jq -r '.taskDefinition.taskDefinitionArn')
 
-          if [ -z "$FRONTEND_TASK_DEF_ARN" ]; then
-            echo "❌ ERROR: FRONTEND_TASK_DEF_ARN is empty!"
-            exit 1
-          fi
-
-          echo "Updating frontend service with task definition $FRONTEND_TASK_DEF_ARN"
           aws ecs update-service \
-            --cluster "${{ env.ECS_CLUSTER_NAME }}" \
-            --service "${{ secrets.FRONTEND_SERVICE_NAME }}" \
+            --cluster "$ECS_CLUSTER_NAME" \
+            --service "$FRONTEND_SERVICE_NAME" \
             --task-definition "$FRONTEND_TASK_DEF_ARN" \
             --force-new-deployment
 
       - name: Register and update backend task
         run: |
-          echo "Registering backend task definition..."
-          aws ecs describe-task-definition --task-definition "${{ secrets.BACKEND_TASK_FAMILY }}" \
-          | jq '.taskDefinition | .containerDefinitions[0].image = "'"${{ env.BACKEND_ECR_REPO }}:$SHORT_SHA"'"' \
-          | jq '{family: .family, networkMode: .networkMode, requiresCompatibilities: .requiresCompatibilities, containerDefinitions: [.containerDefinitions[0]], cpu: .cpu, memory: .memory, executionRoleArn: .executionRoleArn}' > backend-task.json
+          BACKEND_TASK_DEF=$(aws ecs describe-services \
+            --cluster "$ECS_CLUSTER_NAME" \
+            --services "$BACKEND_SERVICE_NAME" \
+            --query "services[0].taskDefinition" --output text)
+
+          TASK_BFAMILY=$(echo $BACKEND_TASK_DEF | cut -d'/' -f2 | cut -d':' -f1)
+
+          aws ecs describe-task-definition --task-definition "$TASK_BFAMILY" > td.json
+
+          cat td.json |
+            jq '.taskDefinition |
+              .containerDefinitions[0].image = "'"${{ env.BACKEND_ECR_REPO }}:$SHORT_SHA"'" |
+              {family: .family, networkMode, requiresCompatibilities, cpu, memory, executionRoleArn, containerDefinitions: [.containerDefinitions[0]]}' \
+            > backend-task.json
 
           BACKEND_TASK_DEF_ARN=$(aws ecs register-task-definition \
             --cli-input-json file://backend-task.json \
             | jq -r '.taskDefinition.taskDefinitionArn')
 
-          if [ -z "$BACKEND_TASK_DEF_ARN" ]; then
-            echo "❌ ERROR: BACKEND_TASK_DEF_ARN is empty!"
-            exit 1
-          fi
-
-          echo "Updating backend service with task definition $BACKEND_TASK_DEF_ARN"
           aws ecs update-service \
-            --cluster "${{ env.ECS_CLUSTER_NAME }}" \
-            --service "${{ secrets.BACKEND_SERVICE_NAME }}" \
+            --cluster "$ECS_CLUSTER_NAME" \
+            --service "$BACKEND_SERVICE_NAME" \
             --task-definition "$BACKEND_TASK_DEF_ARN" \
             --force-new-deployment
