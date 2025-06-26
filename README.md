@@ -1,14 +1,15 @@
-##🛠️ DevOps Assignment
+🛠️ DevOps Assignment
 ---
 This repository contains a 2-tier application with a FastAPI backend and a Next.js frontend. The project demonstrates Infrastructure as Code, containerization, CI/CD pipelines, secure deployment on AWS, and monitoring — covering the full DevOps lifecycle.
 ---
-🌿 Branching Strategy
+## 🌿 Branching Strategy
+
 We follow a Git Flow-based branching strategy:
 
-* main – Stable production-ready code.
-* develop – Integration branch for feature development.
-* pr-review – Temporary branches for peer review before merge.
-* feature/<feature-name> – Feature-specific branches created from develop.
+- `main` – Stable production-ready code.
+- `develop` – Integration branch for feature development.
+- `pr-review` – Temporary branches for peer review before merge.
+- `feature/<feature-name>` – Feature-specific branches created from `develop`.
 ---
 ## 📁 Project Structure
 
@@ -37,9 +38,13 @@ infra/terraform/           # Terraform infrastructure (ECS, ALB, IAM, VPC)
 docker-compose.yml         # For local testing
 ```
 ---
-🌍 Hosted Application URLs
-🔗 Frontend: [http://devops-infra-alb-815802485.ap-south-1.elb.amazonaws.com/](http://devops-infra-alb-1706040250.ap-south-1.elb.amazonaws.com/)
-🩺 Backend Health: [http://devops-infra-alb-815802485.ap-south-1.elb.amazonaws.com/api/health](http://devops-infra-alb-1706040250.ap-south-1.elb.amazonaws.com/api/health)
+
+## 🌍 Hosted Application URLs
+
+- 🔗 **Frontend**: http://devops-infra-alb-1706040250.ap-south-1.elb.amazonaws.com/
+- 🩺 **Backend Health**: http://devops-infra-alb-1706040250.ap-south-1.elb.amazonaws.com/api/health
+
+---
 Both services are containerized with Docker and deployed via ECS Fargate.
 ---
  🐳 Docker Images (Pushed to AWS ECR)
