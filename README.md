@@ -10,7 +10,9 @@ We follow a Git Flow-based branching strategy:
 * pr-review – Temporary branches for peer review before merge.
 * feature/<feature-name> – Feature-specific branches created from develop.
 ---
-📁 Project Structure
+## 📁 Project Structure
+
+```plaintext
 .github/workflows/         # CI/CD pipeline
 backend/                   # FastAPI backend
   ├── app/
@@ -33,17 +35,19 @@ infra/terraform/           # Terraform infrastructure (ECS, ALB, IAM, VPC)
   ├── modules/
   └── ...
 docker-compose.yml         # For local testing
+```
 ---
 🌍 Hosted Application URLs
 🔗 Frontend: [http://devops-infra-alb-815802485.ap-south-1.elb.amazonaws.com/](http://devops-infra-alb-1706040250.ap-south-1.elb.amazonaws.com/)
 🩺 Backend Health: [http://devops-infra-alb-815802485.ap-south-1.elb.amazonaws.com/api/health](http://devops-infra-alb-1706040250.ap-south-1.elb.amazonaws.com/api/health)
 Both services are containerized with Docker and deployed via ECS Fargate.
 ---
-📦 Docker Images
+ 🐳 Docker Images (Pushed to AWS ECR)
 
-Frontend: public.ecr.aws/r3c4o3m2/pg-agi-devops-assignment-frontend:560fa5c
-
-Backend: public.ecr.aws/r3c4o3m2/pg-agi-devops-assignment-backend:f4cb7a8
+- **Frontend Image**:  
+  `public.ecr.aws/r3c4o3m2/pg-agi-devops-assignment-frontend:560fa5c`
+- **Backend Image**:  
+  `public.ecr.aws/r3c4o3m2/pg-agi-devops-assignment-backend:f4cb7a8`
 ---
 🔁 CI/CD Workflow CI/CD pipeline is managed via GitHub Actions:
 
