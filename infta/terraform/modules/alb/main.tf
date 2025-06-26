@@ -3,7 +3,7 @@ resource "aws_lb" "alb" {
   load_balancer_type = "application"
   internal           = false
   subnets            = var.public_subnets
-  security_groups    = [aws_security_group.alb_sg.id] # ⬅️ Important
+  security_groups    = [aws_security_group.alb_sg.id]
 }
 
 resource "aws_security_group" "alb_sg" {
@@ -61,7 +61,7 @@ resource "aws_lb_target_group" "backend" {
   target_type  = "ip"
 
   health_check {
-    path                = "/api/health" # ⬅️ Fixed path for backend
+    path                = "/api/health" #Fixed path for backend
     matcher             = "200"
     interval            = 30
     timeout             = 5

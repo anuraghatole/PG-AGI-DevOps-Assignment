@@ -44,7 +44,7 @@ resource "aws_ecs_service" "frontend" {
   name            = "${var.project_name}-frontend-svc"
   cluster         = aws_ecs_cluster.cluster.id
   task_definition = aws_ecs_task_definition.frontend.arn
-  desired_count   = 1
+  desired_count   = 2
   launch_type     = "FARGATE"
 
   network_configuration {
@@ -66,7 +66,7 @@ resource "aws_ecs_service" "backend" {
   name            = "${var.project_name}-backend-svc"
   cluster         = aws_ecs_cluster.cluster.id
   task_definition = aws_ecs_task_definition.backend.arn
-  desired_count   = 1
+  desired_count   = 2
   launch_type     = "FARGATE"
 
   network_configuration {
