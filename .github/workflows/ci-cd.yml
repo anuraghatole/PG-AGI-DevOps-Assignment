@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  AWS_REGION: us-east-1
+  AWS_REGION: ap-south-1
   FRONTEND_ECR_REPO: public.ecr.aws/r3c4o3m2/pg-agi-devops-assignment-frontend
   BACKEND_ECR_REPO: public.ecr.aws/r3c4o3m2/pg-agi-devops-assignment-backend
   ECS_CLUSTER_NAME: ${{ secrets.ECS_CLUSTER_NAME }}
