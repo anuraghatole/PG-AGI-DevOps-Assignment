@@ -133,7 +133,9 @@ jobs:
 
       - name: Register and update frontend task
         run: |
+          echo "Frontend cluster: $ECS_CLUSTER_NAME"
           FRONTEND_TASK_DEF=$(aws ecs describe-services \
+            --region $AWS_REGION \
             --cluster "$ECS_CLUSTER_NAME" \
             --services "$FRONTEND_SERVICE_NAME" \
             --query "services[0].taskDefinition" --output text)
@@ -153,6 +155,7 @@ jobs:
             | jq -r '.taskDefinition.taskDefinitionArn')
 
           aws ecs update-service \
+            --region $AWS_REGION \
             --cluster "$ECS_CLUSTER_NAME" \
             --service "$FRONTEND_SERVICE_NAME" \
             --task-definition "$FRONTEND_TASK_DEF_ARN" \
@@ -160,7 +163,9 @@ jobs:
 
       - name: Register and update backend task
         run: |
+          echo "Backend cluster: $ECS_CLUSTER_NAME"
           BACKEND_TASK_DEF=$(aws ecs describe-services \
+            --region $AWS_REGION \
             --cluster "$ECS_CLUSTER_NAME" \
             --services "$BACKEND_SERVICE_NAME" \
             --query "services[0].taskDefinition" --output text)
@@ -180,6 +185,7 @@ jobs:
             | jq -r '.taskDefinition.taskDefinitionArn')
 
           aws ecs update-service \
+            --region $AWS_REGION \
             --cluster "$ECS_CLUSTER_NAME" \
             --service "$BACKEND_SERVICE_NAME" \
             --task-definition "$BACKEND_TASK_DEF_ARN" \
