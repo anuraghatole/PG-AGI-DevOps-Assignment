@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  backend:
+    image: backend:latest
+    container_name: backend
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+    networks:
+      - devnet
+
+  frontend:
+    image: frontend:latest
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+    depends_on:
+      - backend
+    networks:
+      - devnet
+
+networks:
+  devnet:
+    driver: bridge
